@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智谱AI文生图</title>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            min-height: 100px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #40a9ff;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #result img {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        .loading {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>智谱AI文生图</h1>
+        <div class="input-group">
+            <textarea id="prompt" placeholder="请输入图片描述..."></textarea>
+        </div>
+        <button id="generate" onclick="generateImage()">生成图片</button>
+        <div id="loading" class="loading">正在生成图片，请稍候...</div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_KEY = 'eda6c818d9414488b4e2ed131588ee76.Nbz9ez0AFxIpJWgr';
+        const API_URL = 'https://open.bigmodel.cn/api/paas/v4/images/generations';
+        
+        async function generateImage() {
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) {
+                alert('请输入图片描述');
+                return;
+            }
+
+            const button = document.getElementById('generate');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+
+            button.disabled = true;
+            loading.style.display = 'block';
+            result.innerHTML = '';
+
+            try {
+                const timestamp = Math.floor(Date.now() / 1000);
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': API_KEY,
+                        'X-Time': timestamp.toString(),
+                        'X-Sign': await generateSignature(timestamp)
+                    },
+                    body: JSON.stringify({
+                        model: 'cogview-3-flash',
+                        prompt: prompt,
+                        n: 1,
+                        width: 1024,
+                        height: 1024,
+                        safety_level: 1
+                    })
+                });
+
+                const data = await response.json();
+                console.log('API Response:', data);
+                
+                if (data.data && data.data[0] && data.data[0].url) {
+                    const img = document.createElement('img');
+                    img.src = data.data[0].url;
+                    result.appendChild(img);
+                    
+                    const saveHint = document.createElement('p');
+                    saveHint.textContent = '长按图片可保存到相册';
+                    saveHint.style.color = '#666';
+                    saveHint.style.fontSize = '14px';
+                    result.appendChild(saveHint);
+                } else {
+                    result.innerHTML = `<p style="color: red;">生成图片失败：${JSON.stringify(data)}</p>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                result.innerHTML = `<p style="color: red;">错误：${error.message}</p>`;
+            } finally {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        async function generateSignature(timestamp) {
+            const apiKey = API_KEY.split('.')[0];
+            const secret = API_KEY.split('.')[1];
+            
+            const message = apiKey + timestamp;
+            
+            const encoder = new TextEncoder();
+            const keyData = encoder.encode(secret);
+            const messageData = encoder.encode(message);
+            
+            const cryptoKey = await crypto.subtle.importKey(
+                'raw',
+                keyData,
+                { name: 'HMAC', hash: 'SHA-256' },
+                false,
+                ['sign']
+            );
+            
+            const signature = await crypto.subtle.sign(
+                'HMAC',
+                cryptoKey,
+                messageData
+            );
+            
+            return Array.from(new Uint8Array(signature))
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('');
+        }
+    </script>
+</body>
+</html>
