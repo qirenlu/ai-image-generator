@@ -3,33 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智谱AI文生图</title>
+    <title>智谱AI助手</title>
     <style>
         body {
+            margin: 0;
+            padding: 0;
             font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
+            display: flex;
+            min-height: 100vh;
             background-color: #f5f5f5;
         }
+        
+        .sidebar {
+            width: 200px;
+            background-color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .sidebar-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .sidebar-item.active {
+            background-color: #e6f7ff;
+            color: #1890ff;
+        }
+        
+        .model-select {
+            display: none;
+            margin-top: 10px;
+            padding: 8px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            height: 100vh;
+        }
+        
         .container {
             background-color: white;
-            padding: 30px;
+            padding: 20px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+            position: relative;
+            overflow: hidden;
         }
+        
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
         .input-group {
             margin-bottom: 20px;
         }
+        
         textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
             resize: vertical;
-            min-height: 100px;
+            min-height: 60px;
+            max-height: 150px;
             font-size: 16px;
         }
+        
         button {
             background-color: #1890ff;
             color: white;
@@ -40,43 +102,453 @@
             font-size: 16px;
             transition: background-color 0.3s;
         }
+        
         button:hover {
             background-color: #40a9ff;
         }
+        
         button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
+        
         #result {
             margin-top: 20px;
             text-align: center;
         }
+        
         #result img {
             max-width: 100%;
             border-radius: 5px;
         }
+        
         .loading {
             display: none;
             margin: 20px 0;
             text-align: center;
             color: #666;
         }
+        
+        #chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        
+        .chat-message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .user-message {
+            background-color: #e6f7ff;
+            margin-left: 20%;
+        }
+        
+        .ai-message {
+            background-color: #f5f5f5;
+            margin-right: 20%;
+        }
+        
+        .input-area {
+            background-color: white;
+            padding: 15px;
+            border-top: 1px solid #eee;
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+        
+        .sub-menu {
+            display: none;
+            margin-left: 20px;
+            margin-top: 5px;
+        }
+        
+        .sub-menu-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .sub-menu-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .sub-menu-item.active {
+            background-color: #e6f7ff;
+            color: #1890ff;
+        }
+        
+        .clear-history {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #f0f0f0;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .clear-history:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .settings-button {
+            position: absolute;
+            top: 10px;
+            right: 80px; /* 放在清空历史按钮左边 */
+            background-color: #f0f0f0;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            width: 80%;
+            max-width: 500px;
+        }
+        
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .params-group {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+        
+        .param-item {
+            margin-bottom: 15px;
+        }
+        
+        .param-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        
+        .param-item input[type="range"] {
+            width: 100%;
+            margin-right: 10px;
+        }
+        
+        .param-item input[type="number"] {
+            width: 100px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>智谱AI文生图</h1>
-        <div class="input-group">
-            <textarea id="prompt" placeholder="请输入图片描述..."></textarea>
+    <div class="sidebar">
+        <div class="sidebar-item active" onclick="switchMode('image')">文生图</div>
+        <div class="sidebar-item" onclick="switchMode('chat')">文字对话</div>
+        <div class="sub-menu" id="chat-sub-menu">
+            <div class="sub-menu-item active" onclick="switchSubMode('zhipu')">智谱清言</div>
+            <div class="sub-menu-item" onclick="switchSubMode('deepseek')">Deepseek</div>
+            <div class="sub-menu-item" onclick="switchSubMode('zhipu-agent')">智谱智能体</div>
         </div>
-        <button id="generate" onclick="generateImage()">生成图片</button>
-        <div id="loading" class="loading">正在生成图片，请稍候...</div>
-        <div id="result"></div>
+        <select id="model-select" class="model-select">
+            <option value="glm-4-plus">GLM-4-plus（默认）</option>
+            <option value="glm-4-air-0111">GLM-4-air-0111</option>
+            <option value="glm-4-airx">GLM-4-airx</option>
+            <option value="glm-4-long">GLM-4-long</option>
+            <option value="glm-4-flashx">GLM-4-flashx</option>
+            <option value="glm-4-flash">GLM-4-flash</option>
+        </select>
+        <select id="deepseek-model-select" class="model-select" style="display: none;">
+            <option value="deepseek-chat">DeepSeek-V3</option>
+            <option value="deepseek-reasoner">DeepSeek-R1</option>
+        </select>
+    </div>
+    
+    <div class="main-content">
+        <div class="container">
+            <h1 id="title">智谱AI文生图</h1>
+            <div id="image-container">
+                <div class="input-group">
+                    <textarea id="prompt" placeholder="请输入描述..."></textarea>
+                </div>
+                <button id="generate" onclick="handleSubmit()">生成</button>
+                <div id="loading" class="loading">正在处理，请稍候...</div>
+                <div id="result"></div>
+            </div>
+            <div id="chat-container" class="chat-container" style="display: none;">
+                <button class="clear-history" onclick="clearHistory()">清空历史</button>
+                <button class="settings-button" onclick="showSettings()">系统设定</button>
+                <div id="chat-history"></div>
+                <div class="input-area">
+                    <div class="input-group">
+                        <textarea id="chat-prompt" placeholder="请输入问题..."></textarea>
+                    </div>
+                    <button id="send" onclick="handleSubmit()">发送</button>
+                </div>
+            </div>
+            
+            <!-- 添加设置对话框 -->
+            <div class="modal-backdrop" id="modal-backdrop"></div>
+            <div class="settings-modal" id="settings-modal">
+                <h2>系统设定</h2>
+                <div class="input-group">
+                    <label>系统提示词</label>
+                    <textarea id="system-prompt" placeholder="请输入系统设定提示词..." rows="6"></textarea>
+                </div>
+                
+                <!-- 基础参数 -->
+                <div class="params-group" id="basic-params">
+                    <label>基础参数</label>
+                    <div class="param-item">
+                        <label>Temperature</label>
+                        <input type="range" id="temperature" min="0" max="100" value="70">
+                        <span id="temperature-value">0.7</span>
+                    </div>
+                    <div class="param-item">
+                        <label>Top P</label>
+                        <input type="range" id="top-p" min="0" max="100" value="90">
+                        <span id="top-p-value">0.9</span>
+                    </div>
+                    <div class="param-item">
+                        <label>最大生成长度</label>
+                        <input type="number" id="max-tokens" value="2048" min="1" max="8192">
+                    </div>
+                    <div class="param-item">
+                        <label>停止词（用逗号分隔）</label>
+                        <input type="text" id="stop-words" placeholder="输入停止词，用逗号分隔">
+                    </div>
+                </div>
+                
+                <!-- 智能体参数 -->
+                <div class="params-group" id="agent-params" style="display: none;">
+                    <label>智能体参数</label>
+                    <div class="param-item">
+                        <label>Temperature</label>
+                        <input type="range" id="agent-temperature" min="0" max="100" value="70">
+                        <span id="agent-temperature-value">0.7</span>
+                    </div>
+                    <div class="param-item">
+                        <label>随机种子</label>
+                        <input type="number" id="seed" value="1234">
+                    </div>
+                    <div class="param-item">
+                        <label>工具选择</label>
+                        <select id="tool-choice">
+                            <option value="auto">自动</option>
+                            <option value="none">不使用工具</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Deepseek特有参数 -->
+                <div class="params-group" id="deepseek-params" style="display: none;">
+                    <div class="param-item">
+                        <label>Presence Penalty</label>
+                        <input type="range" id="presence-penalty" min="-200" max="200" value="0">
+                        <span id="presence-penalty-value">0</span>
+                    </div>
+                    <div class="param-item">
+                        <label>Frequency Penalty</label>
+                        <input type="range" id="frequency-penalty" min="-200" max="200" value="0">
+                        <span id="frequency-penalty-value">0</span>
+                    </div>
+                </div>
+                
+                <!-- 流式输出控制 -->
+                <div class="params-group" id="stream-control">
+                    <div class="param-item">
+                        <label>
+                            <input type="checkbox" id="stream-output">
+                            启用流式输出（打字机效果）
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="text-align: right;">
+                    <button onclick="hideSettings()">取消</button>
+                    <button onclick="saveSettings()" style="margin-left: 10px;">保存</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         const API_KEY = 'eda6c818d9414488b4e2ed131588ee76.Nbz9ez0AFxIpJWgr';
-        const API_URL = 'https://open.bigmodel.cn/api/paas/v4/images/generations';
+        const DEEPSEEK_API_KEY = 'sk-7ca3e72e77b848fd856c6a4781e8456c';
+        const IMAGE_API_URL = 'https://open.bigmodel.cn/api/paas/v4/images/generations';
+        const CHAT_API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+        const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+        let currentMode = 'image';
+        let currentEngine = 'zhipu';
+        let chatHistory = [];  // 存储对话历史
+        let systemPrompt = ''; // 存储系统设定
+        let modelParams = {
+            temperature: 0.7,
+            top_p: 0.9,
+            max_tokens: 2048,
+            presence_penalty: 0,
+            frequency_penalty: 0
+        };
+        
+        function switchMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            const modelSelect = document.getElementById('model-select');
+            const title = document.getElementById('title');
+            const imageContainer = document.getElementById('image-container');
+            const chatContainer = document.getElementById('chat-container');
+            const chatSubMenu = document.getElementById('chat-sub-menu');
+            
+            if (mode === 'chat') {
+                modelSelect.style.display = 'none';
+                chatSubMenu.style.display = 'block';
+                title.textContent = '文字对话';
+                imageContainer.style.display = 'none';
+                chatContainer.style.display = 'flex';
+            } else {
+                modelSelect.style.display = 'none';
+                chatSubMenu.style.display = 'none';
+                title.textContent = '智谱AI文生图';
+                imageContainer.style.display = 'block';
+                chatContainer.style.display = 'none';
+            }
+        }
+        
+        function switchSubMode(engine) {
+            currentEngine = engine;
+            document.querySelectorAll('.sub-menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            const zhipuSelect = document.getElementById('model-select');
+            const deepseekSelect = document.getElementById('deepseek-model-select');
+            
+            zhipuSelect.style.display = 'none';
+            deepseekSelect.style.display = 'none';
+            
+            if (engine === 'zhipu') {
+                zhipuSelect.style.display = 'block';
+            } else if (engine === 'deepseek') {
+                deepseekSelect.style.display = 'block';
+            }
+            
+            clearHistory();
+        }
+        
+        function clearHistory() {
+            chatHistory = [];
+            document.getElementById('chat-history').innerHTML = '';
+        }
+        
+        function showSettings() {
+            document.getElementById('modal-backdrop').style.display = 'block';
+            document.getElementById('settings-modal').style.display = 'block';
+            document.getElementById('system-prompt').value = systemPrompt;
+            
+            // 获取所有参数控制区域
+            const basicParams = document.getElementById('basic-params');
+            const agentParams = document.getElementById('agent-params');
+            const deepseekParams = document.getElementById('deepseek-params');
+            const streamControl = document.getElementById('stream-control');
+            
+            // 根据当前引擎显示相应参数
+            if (currentEngine === 'zhipu') {
+                basicParams.style.display = 'block';
+                agentParams.style.display = 'none';
+                deepseekParams.style.display = 'none';
+                streamControl.style.display = 'block';
+            } else if (currentEngine === 'zhipu-agent') {
+                basicParams.style.display = 'none';
+                agentParams.style.display = 'block';
+                deepseekParams.style.display = 'none';
+                streamControl.style.display = 'block';
+            } else if (currentEngine === 'deepseek') {
+                basicParams.style.display = 'block';
+                agentParams.style.display = 'none';
+                deepseekParams.style.display = 'block';
+                streamControl.style.display = 'block';
+            }
+            
+            // 显示当前参数
+            document.getElementById('temperature').value = modelParams.temperature * 100;
+            document.getElementById('temperature-value').textContent = modelParams.temperature;
+            document.getElementById('top-p').value = modelParams.top_p * 100;
+            document.getElementById('top-p-value').textContent = modelParams.top_p;
+            document.getElementById('max-tokens').value = modelParams.max_tokens;
+            
+            // 根据模型显示/隐藏特定参数
+            const penaltyControls = document.getElementById('penalty-controls');
+            if (currentEngine === 'deepseek') {
+                penaltyControls.style.display = 'block';
+                document.getElementById('presence-penalty').value = modelParams.presence_penalty * 100;
+                document.getElementById('presence-penalty-value').textContent = modelParams.presence_penalty;
+                document.getElementById('frequency-penalty').value = modelParams.frequency_penalty * 100;
+                document.getElementById('frequency-penalty-value').textContent = modelParams.frequency_penalty;
+            } else {
+                penaltyControls.style.display = 'none';
+            }
+        }
+        
+        function hideSettings() {
+            document.getElementById('modal-backdrop').style.display = 'none';
+            document.getElementById('settings-modal').style.display = 'none';
+        }
+        
+        function saveSettings() {
+            systemPrompt = document.getElementById('system-prompt').value.trim();
+            modelParams = {
+                temperature: parseFloat(document.getElementById('temperature').value) / 100,
+                top_p: parseFloat(document.getElementById('top-p').value) / 100,
+                max_tokens: parseInt(document.getElementById('max-tokens').value),
+                presence_penalty: parseFloat(document.getElementById('presence-penalty').value) / 100,
+                frequency_penalty: parseFloat(document.getElementById('frequency-penalty').value) / 100
+            };
+            hideSettings();
+            clearHistory();
+        }
+        
+        async function handleSubmit() {
+            if (currentMode === 'image') {
+                await generateImage();
+            } else {
+                await sendMessage();
+            }
+        }
         
         async function generateImage() {
             const prompt = document.getElementById('prompt').value.trim();
@@ -95,7 +567,7 @@
 
             try {
                 const timestamp = Math.floor(Date.now() / 1000);
-                const response = await fetch(API_URL, {
+                const response = await fetch(IMAGE_API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -132,6 +604,296 @@
             } catch (error) {
                 console.error('Error:', error);
                 result.innerHTML = `<p style="color: red;">错误：${error.message}</p>`;
+            } finally {
+                button.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+        
+        async function sendMessage() {
+            const prompt = document.getElementById('chat-prompt').value.trim();
+            if (!prompt) {
+                alert('请输入问题');
+                return;
+            }
+
+            const button = document.getElementById('send');
+            const loading = document.getElementById('loading');
+            const chatHistoryDiv = document.getElementById('chat-history');
+
+            button.disabled = true;
+            loading.style.display = 'block';
+
+            // 添加用户消息
+            const userDiv = document.createElement('div');
+            userDiv.className = 'chat-message user-message';
+            userDiv.textContent = prompt;
+            chatHistoryDiv.appendChild(userDiv);
+
+            try {
+                let response;
+                if (currentEngine === 'zhipu') {
+                    const timestamp = Math.floor(Date.now() / 1000);
+                    const modelSelect = document.getElementById('model-select');
+                    const selectedModel = modelSelect.value;
+                    
+                    let messages = [];
+                    if (systemPrompt) {
+                        messages.push({ role: "system", content: systemPrompt });
+                    }
+                    messages = messages.concat(chatHistory);
+                    messages.push({ role: "user", content: prompt });
+                    
+                    let requestBody = {
+                        model: selectedModel,
+                        messages: messages,
+                        temperature: modelParams.temperature,
+                        top_p: modelParams.top_p,
+                        max_tokens: modelParams.max_tokens,
+                        stream: true  // 启用流式输出
+                    };
+                    
+                    // 创建AI消息div
+                    const aiDiv = document.createElement('div');
+                    aiDiv.className = 'chat-message ai-message';
+                    const messageContent = document.createElement('div');
+                    aiDiv.appendChild(messageContent);
+                    chatHistoryDiv.appendChild(aiDiv);
+                    
+                    // 添加模型标识
+                    const modelInfo = document.createElement('div');
+                    modelInfo.style.fontSize = '12px';
+                    modelInfo.style.color = '#999';
+                    modelInfo.style.textAlign = 'right';
+                    modelInfo.style.marginTop = '5px';
+                    modelInfo.textContent = selectedModel;
+                    aiDiv.appendChild(modelInfo);
+
+                    response = await fetch(CHAT_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': API_KEY,
+                            'X-Time': timestamp.toString(),
+                            'X-Sign': await generateSignature(timestamp)
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let responseText = '';
+
+                    while (true) {
+                        const {value, done} = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const jsonStr = line.slice(6);
+                                if (jsonStr.trim() === '[DONE]') continue;
+                                
+                                try {
+                                    const data = JSON.parse(jsonStr);
+                                    if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
+                                        responseText += data.choices[0].delta.content;
+                                        messageContent.textContent = responseText;
+                                        // 滚动到底部
+                                        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+                                    }
+                                } catch (e) {
+                                    console.error('解析流式数据出错:', e);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 将完整回复添加到历史记录
+                    chatHistory.push({
+                        role: "assistant",
+                        content: responseText
+                    });
+
+                } else if (currentEngine === 'zhipu-agent') {
+                    // 智能体模型的流式处理
+                    const timestamp = Math.floor(Date.now() / 1000);
+                    
+                    let messages = [];
+                    if (systemPrompt) {
+                        messages.push({ role: "system", content: systemPrompt });
+                    }
+                    messages = messages.concat(chatHistory);
+                    messages.push({ role: "user", content: prompt });
+                    
+                    // 创建AI消息div
+                    const aiDiv = document.createElement('div');
+                    aiDiv.className = 'chat-message ai-message';
+                    const messageContent = document.createElement('div');
+                    aiDiv.appendChild(messageContent);
+                    chatHistoryDiv.appendChild(aiDiv);
+                    
+                    // 添加模型标识
+                    const modelInfo = document.createElement('div');
+                    modelInfo.style.fontSize = '12px';
+                    modelInfo.style.color = '#999';
+                    modelInfo.style.textAlign = 'right';
+                    modelInfo.style.marginTop = '5px';
+                    modelInfo.textContent = 'glm-4-alltools';
+                    aiDiv.appendChild(modelInfo);
+                    
+                    response = await fetch(CHAT_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': API_KEY,
+                            'X-Time': timestamp.toString(),
+                            'X-Sign': await generateSignature(timestamp)
+                        },
+                        body: JSON.stringify({
+                            model: 'glm-4-alltools',
+                            messages: messages,
+                            tools: [],
+                            tool_choice: "auto",
+                            temperature: 0.7,
+                            seed: 1234,
+                            stream: true  // 启用流式输出
+                        })
+                    });
+
+                    // 处理流式响应
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let responseText = '';
+
+                    while (true) {
+                        const {value, done} = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const jsonStr = line.slice(6);
+                                if (jsonStr.trim() === '[DONE]') continue;
+                                
+                                try {
+                                    const data = JSON.parse(jsonStr);
+                                    if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
+                                        responseText += data.choices[0].delta.content;
+                                        messageContent.textContent = responseText;
+                                        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+                                    }
+                                } catch (e) {
+                                    console.error('解析流式数据出错:', e);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 将完整回复添加到历史记录
+                    chatHistory.push({
+                        role: "assistant",
+                        content: responseText
+                    });
+
+                } else if (currentEngine === 'deepseek') {
+                    // Deepseek 模型的流式处理
+                    const modelSelect = document.getElementById('deepseek-model-select');
+                    const selectedModel = modelSelect.value;
+                    
+                    let messages = [];
+                    if (systemPrompt) {
+                        messages.push({ role: "system", content: systemPrompt });
+                    }
+                    messages = messages.concat(chatHistory);
+                    messages.push({ role: "user", content: prompt });
+                    
+                    // 创建AI消息div
+                    const aiDiv = document.createElement('div');
+                    aiDiv.className = 'chat-message ai-message';
+                    const messageContent = document.createElement('div');
+                    aiDiv.appendChild(messageContent);
+                    chatHistoryDiv.appendChild(aiDiv);
+                    
+                    // 添加模型标识
+                    const modelInfo = document.createElement('div');
+                    modelInfo.style.fontSize = '12px';
+                    modelInfo.style.color = '#999';
+                    modelInfo.style.textAlign = 'right';
+                    modelInfo.style.marginTop = '5px';
+                    modelInfo.textContent = selectedModel;
+                    aiDiv.appendChild(modelInfo);
+                    
+                    response = await fetch(DEEPSEEK_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                        },
+                        body: JSON.stringify({
+                            model: modelSelect.value,
+                            messages: messages,
+                            temperature: modelParams.temperature,
+                            top_p: modelParams.top_p,
+                            max_tokens: modelParams.max_tokens,
+                            presence_penalty: modelParams.presence_penalty,
+                            frequency_penalty: modelParams.frequency_penalty,
+                            stream: true  // 启用流式输出
+                        })
+                    });
+
+                    // 处理流式响应
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let responseText = '';
+
+                    while (true) {
+                        const {value, done} = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const jsonStr = line.slice(6);
+                                if (jsonStr.trim() === '[DONE]') continue;
+                                
+                                try {
+                                    const data = JSON.parse(jsonStr);
+                                    if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
+                                        responseText += data.choices[0].delta.content;
+                                        messageContent.textContent = responseText;
+                                        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+                                    }
+                                } catch (e) {
+                                    console.error('解析流式数据出错:', e);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 将完整回复添加到历史记录
+                    chatHistory.push({
+                        role: "assistant",
+                        content: responseText
+                    });
+                }
+
+                // 清空输入框
+                document.getElementById('chat-prompt').value = '';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'chat-message ai-message';
+                errorDiv.textContent = '错误：' + error.message;
+                errorDiv.style.color = 'red';
+                chatHistoryDiv.appendChild(errorDiv);
             } finally {
                 button.disabled = false;
                 loading.style.display = 'none';
